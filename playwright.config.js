@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/ui',workers:1,use:{baseURL:'http://127.0.0.1:4328',headless:true,launchOptions:{executablePath:process.env.LUVTORA_CHROMIUM||'/usr/bin/chromium',args:['--no-sandbox']},viewport:{width:1440,height:1000}},webServer:{command:'node src/server.js',url:'http://127.0.0.1:4328',reuseExistingServer:false,env:{LUVTORA_PORT:'4328',LUVTORA_DATA_DIR:'/tmp/luvtora-ui-'+Date.now()}}});
