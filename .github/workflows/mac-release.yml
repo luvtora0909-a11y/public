@@ -14,8 +14,8 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -32,7 +32,7 @@ jobs:
           cd dist
           shasum -a 256 *.zip > SHA256SUMS.txt
       - name: Attach installers to this workflow run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: luvtora-mac-installers
           path: |
