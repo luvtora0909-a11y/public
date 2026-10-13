@@ -1,6 +1,6 @@
 # Luvtora 运营中心
 
-面向 Mac 的独立站经营桌面程序，第一版（v0.1）。默认网站 `https://luvtora.com`，每日广告预算参考值 USD 45。
+面向 Mac 的独立站经营桌面程序，试用版（v0.1.1）。默认网站 `https://luvtora.com`，每日广告预算参考值 USD 45。
 
 ## 当前交付
 
@@ -21,7 +21,7 @@
 
 1. Apple 芯片（M 系列）选择 arm64 ZIP；Intel Mac 选择 x64 ZIP。
 2. 解压后将 `Luvtora Operations.app` 拖入“应用程序”，再打开。
-3. 本版未使用 Apple Developer 证书签名及公证。如果 macOS 阻止首次打开，在确认下载来源和校验值后使用系统提供的“仍要打开”流程；不需要关闭系统安全保护。
+3. 本版使用 ad-hoc 签名以保持完整性，尚未使用 Apple Developer ID 签名及公证。如果 macOS 阻止首次打开，在确认下载来源和校验值后使用系统提供的“仍要打开”流程；不需要关闭系统安全保护。
 4. 打开“连接与设置”。在 WooCommerce → 设置 → 高级 → REST API 创建**读取**权限密钥，在程序内输入后保存，再点击同步。
 5. AI 方案需要你自己的 OpenAI API 密钥与可用额度。ChatGPT 订阅不包含 API 使用费。密钥只输入到程序，不要发送到聊天。
 6. 广告分析下载 CSV 模板后填入实际数据；Meta 原始导出需要转换列名及口径。同名广告组应使用唯一广告名称或 ID。
@@ -52,7 +52,7 @@ npm start
 npm run dist:mac
 ```
 
-产物在 `dist/`，生成 Apple Silicon 与 Intel ZIP。发行签名、公证及 Mac 真机验证需在有权限的 macOS 环境完成。首次正式发布前需要添加 Apple 证书与公证配置；当前 `mac.identity: null` 明确生成未签名试用版本。
+产物在 `dist/`，生成 Apple Silicon 与 Intel ZIP。发行签名、公证及 Mac 真机验证需在有权限的 macOS 环境完成。首次正式发布前需要添加 Apple 证书与公证配置；当前 `mac.identity: "-"` 生成 ad-hoc 签名试用版本，保持 hardened runtime 并使用 Electron JIT 与 ad-hoc 库加载所需的权限。
 
 ## 检查
 

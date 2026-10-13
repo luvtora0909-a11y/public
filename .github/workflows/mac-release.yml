@@ -25,8 +25,14 @@ jobs:
           node node_modules/electron/install.js
       - name: Run business tests
         run: npm test
-      - name: Build unsigned Apple Silicon and Intel applications
+      - name: Build ad-hoc signed Apple Silicon and Intel applications
         run: node .github/scripts/build.cjs
+      - name: Verify both application signatures
+        run: |
+          codesign --verify --deep --strict --verbose=2 "dist/mac/Luvtora Operations.app"
+          codesign --verify --deep --strict --verbose=2 "dist/mac-arm64/Luvtora Operations.app"
+      - name: Launch the packaged app on macOS
+        run: node .github/scripts/mac-smoke.mjs
       - name: Generate checksums
         run: |
           cd dist
@@ -38,6 +44,7 @@ jobs:
           path: |
             dist/*.zip
             dist/SHA256SUMS.txt
+            dist/mac-runtime-check.png
           retention-days: 30
           compression-level: 0
           if-no-files-found: error
