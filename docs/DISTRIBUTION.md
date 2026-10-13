@@ -4,7 +4,7 @@
 
 ## 已准备的交付方式
 
-`.github/workflows/mac-release.yml` 提供手动触发的 Mac 构建：
+`.github/workflows/mac-release.yml` 提供手动触发或推送 `v*` 版本标签触发的 Mac 构建：
 
 1. 源码上传到用户授权的 GitHub 仓库。
 2. 在仓库 Actions 中选择 **Build Mac installers**，点击 **Run workflow**。
@@ -12,9 +12,9 @@
 4. 同一流程创建一个 **draft release**，附上两种架构的 ZIP 和校验码。草稿只对有权限的用户可见。
 5. 用户检查后发布该 Release，即可使用 GitHub 实际生成的安装包下载链接。能否匿名下载取决于仓库可见性；私有仓库下载仍需要权限。
 
-工作流仅 `workflow_dispatch` 手动触发，不会因普通 push 自动创建发行版。正式发布与源码上传均需用户授权。工作流自身使用 GitHub 提供的短期 token，不需要用户把密钥发到聊天。
+工作流可 `workflow_dispatch` 手动触发，也可由 `v*` 版本标签触发，不会因普通分支 push 自动创建发行版。正式发布与源码上传均需用户授权。工作流自身使用 GitHub 提供的短期 token，不需要用户把密钥发到聊天。
 
-当前仍未上传源码、运行 GitHub Actions 或发布 Release。工作流配置已准备，尚未在 GitHub 执行验证。真实下载 URL 只能在上传成功后确认，不能提前编造。
+当前源码已获授权上传。当前环境通过 Git HTTPS 推送成功，但 GitHub API 拒绝工作流调度请求，因此使用版本标签触发构建。构建是否成功、安装包及草稿发行版是否创建，仍需根据 GitHub 运行结果确认。真实安装包下载 URL 只能在创建后确认，不能提前编造。
 
 ## 网络与权限限制
 
