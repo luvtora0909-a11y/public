@@ -1,5 +1,18 @@
 # v0.1 验证记录
 
+## 最新：v0.1.2
+
+- 修正 `mac.identity: null` 造成的未重新签名问题，改为 ad-hoc 签名，保持 hardened runtime，并配置 Electron JIT 与 ad-hoc 库加载所需权限。
+- 本地业务/API 测试：9 项通过；Chromium UI 测试：3 项通过。
+- macOS GitHub Actions 构建成功：https://github.com/luvtora0909-a11y/public/actions/runs/38424820959 。
+- 两种架构的 `.app` 均通过 `codesign --verify --deep --strict`。
+- 原生架构 ZIP 实际解压后再次验证签名，启动打包后的应用，验证任务页、中英文切换、多语言客服页与 macOS safeStorage 加密往返成功。
+- 安装包、校验码和运行截图已上传至该运行的 Artifacts；创建了 v0.1.2 草稿发行版，未公开发布。
+- 以上不等于用户电脑上的 Gatekeeper 首次下载验收，也不等于 Apple Developer ID 签名或公证。Intel 架构校验了签名，尚未在 Intel 真机上运行。真实 WooCommerce / OpenAI 账户尚未验证。
+- 客服目前仅生成草稿，16 种目标语言及跟随原文。社媒消息 API 未连接，也没有自动发送。
+
+下列是初版历史记录，涉及“尚未 Mac 验证”的内容已由以上新验证补充。
+
 ## 已通过
 
 - Node.js 24.19.0 / npm 11.9.0，固定 lockfile 安装成功。
