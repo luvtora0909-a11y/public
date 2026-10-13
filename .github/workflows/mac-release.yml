@@ -26,7 +26,7 @@ jobs:
       - name: Run business tests
         run: npm test
       - name: Build unsigned Apple Silicon and Intel applications
-        run: npm run dist:mac
+        run: node .github/scripts/build.cjs
       - name: Generate checksums
         run: |
           cd dist
