@@ -46,3 +46,16 @@ test('successful integration adapters persist results without performing shop wr
   const state=await (await fetch(service.url+'/api/state',{headers:{'x-luvtora-token':token}})).json();
   assert.equal(state.products[0].name,'项链');assert.equal(state.metrics.lowStock,1);assert.equal(state.plans[0].executed,false);
 });
+test('UI language does not require a credential vault; support drafts survive backup restore without sending',async t=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),'luvtora-support-'));
+  const vault={persistent:false,read:async()=>({}),write:async()=>{throw new Error('Vault unavailable');}};
+  const service=await createService({dataDir:dir,vault,integrations:{generateSupportReply:async()=>({id:'reply1',createdAt:'2026-10-13T00:00:00Z',channel:'Instagram',language:'es',detectedLanguage:'es',summaryZh:'配送咨询',message:'¿Dónde está mi pedido?',facts:'',policy:'',reply:'Vamos a verificarlo.',needsReview:true,reviewNotes:['核查物流'],sent:false,model:'fixture'})}});
+  t.after(async()=>{await new Promise(r=>service.server.close(r));await rm(dir,{recursive:true,force:true});});
+  const token=(await (await fetch(service.url)).text()).match(/name="luvtora-session" content="([^"]+)"/)[1];
+  const req=(ep,value)=>fetch(service.url+'/api/'+ep,{method:value===undefined?'GET':'POST',headers:{'x-luvtora-token':token,'Content-Type':'application/json'},...(value===undefined?{}:{body:JSON.stringify(value)})});
+  assert.equal((await req('settings',{uiLanguage:'en-US'})).status,200);
+  assert.equal((await req('support/generate',{channel:'Instagram',language:'es',message:'test'})).status,200);
+  const backup=await (await req('backup')).json();assert.equal(backup.state.supportDrafts[0].sent,false);
+  assert.equal((await req('backup/restore',backup)).status,200);
+  const state=await (await req('state')).json();assert.equal(state.settings.uiLanguage,'en-US');assert.equal(state.supportDrafts[0].reply,'Vamos a verificarlo.');assert.equal(state.supportDrafts[0].sent,false);
+});

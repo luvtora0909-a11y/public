@@ -24,3 +24,11 @@ test('sidebar navigation remains accessible at the minimum desktop height',async
   await page.locator('nav').getByRole('button',{name:'复盘与记录'}).click();await expect(page.getByRole('heading',{name:'复盘与记录',exact:true})).toBeVisible();
   await page.locator('nav').getByRole('button',{name:'连接与设置'}).click();await expect(page.getByRole('heading',{name:'连接与设置',exact:true})).toBeVisible();
 });
+test('interface language persists and multilingual support is explicitly a draft workflow',async({page})=>{
+  await page.goto('/');await page.locator('#ui-language').selectOption('en-US');await expect(page.getByRole('heading',{name:'Overview',exact:true})).toBeVisible();
+  await page.reload();await expect(page.getByRole('heading',{name:'Overview',exact:true})).toBeVisible();
+  await page.locator('nav').getByRole('button',{name:'Customer support'}).click();await expect(page.getByRole('heading',{name:'Multilingual support & after-sales'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Draft reply (API charges apply)'})).toBeDisabled();
+  await expect(page.locator('select[name=language] option')).toHaveCount(17);
+  await page.locator('#ui-language').selectOption('zh-CN');await expect(page.getByRole('heading',{name:'多语言客服',exact:true})).toBeVisible();await expect(page.locator('#backup')).toHaveText('导出备份 ↗');
+});

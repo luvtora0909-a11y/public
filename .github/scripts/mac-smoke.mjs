@@ -21,6 +21,13 @@ try {
   await page.getByRole('heading',{name:'经营总览',exact:true}).waitFor({timeout:30000});
   await page.locator('nav').getByRole('button',{name:'运营任务'}).click();
   await page.getByRole('heading',{name:'运营任务',exact:true}).waitFor();
+  await page.locator('#ui-language').selectOption('en-US');
+  await page.getByRole('heading',{name:'Tasks',exact:true}).waitFor();
+  await page.locator('nav').getByRole('button',{name:'Customer support'}).click();
+  await page.getByRole('heading',{name:'Multilingual support & after-sales'}).waitFor();
+  if(!await page.getByRole('button',{name:'Draft reply (API charges apply)'}).isDisabled())throw new Error('AI support should require an API connection');
+  await page.locator('#ui-language').selectOption('zh-CN');
+  await page.getByRole('heading',{name:'多语言客服',exact:true}).waitFor();
   const vaultPassed=await app.evaluate(({safeStorage})=>safeStorage.isEncryptionAvailable()&&safeStorage.decryptString(safeStorage.encryptString('Luvtora CI test'))==='Luvtora CI test');
   if(!vaultPassed)throw new Error('macOS safeStorage encryption round-trip failed');
   await page.screenshot({path:'dist/mac-runtime-check.png'});

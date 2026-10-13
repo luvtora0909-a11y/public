@@ -7,12 +7,14 @@ export const modules = [
   ['social','社媒与直播','Instagram、Facebook、TikTok、Pinterest、YouTube、达人','待接入'],
   ['retention','活动与留存','促销、邮件、弃购、复购、会员与联盟','待接入'],
   ['fulfillment','订单与供应链','库存、备货、物流、尾程配送与异常订单','订单只读同步可用'],
-  ['support','客服与售后','咨询、身份核验、工单、退款、客诉与知识库','待接入'],
+  ['support','客服与售后','咨询、身份核验、工单、退款、客诉与知识库','多语言草稿可用 · 消息接入待开发'],
   ['security','网站安全','监测、备份、授权扫描、测试环境与 Codex 整改','待接入'],
   ['finance','经营复盘','贡献利润、现金流、竞品、趋势、日报与次日任务','手动复盘可用'],
 ];
+export const replyLanguages=[['auto','跟随客户原文 / Auto'],['en-US','English'],['zh-CN','简体中文'],['zh-TW','繁體中文'],['es','Español'],['fr','Français'],['de','Deutsch'],['pt-BR','Português'],['it','Italiano'],['ja','日本語'],['ko','한국어'],['ar','العربية'],['hi','हिन्दी'],['th','ไทย'],['vi','Tiếng Việt'],['ru','Русский'],['uk','Українська']];
+export const supportChannels=['网站咨询','邮件','Instagram','Facebook Messenger','WhatsApp','TikTok','Pinterest','YouTube','X'];
 export function initialState() {
-  return { version: 1, settings: { site: 'https://luvtora.com', budget: 45, expectedSkus: 42, timezone: 'America/Los_Angeles', brand: '美国市场饰品品牌；材质、尺寸和性能仅使用已核实资料。', audience: '', aiModel: 'gpt-4.1-mini' }, products: [], orders: [], ads: [], assets: [], plans: [], reports: [], audit: [], lastSync: null,
+  return { version: 1, settings: { site: 'https://luvtora.com', budget: 45, expectedSkus: 42, timezone: 'America/Los_Angeles', uiLanguage:'zh-CN', brand: '美国市场饰品品牌；材质、尺寸和性能仅使用已核实资料。', audience: '', aiModel: 'gpt-4.1-mini' }, products: [], orders: [], ads: [], assets: [], plans: [], reports: [], supportDrafts:[], audit: [], lastSync: null,
     tasks: [
       ['验证移动端购买、支付与追踪', 'foundation'], ['同步商品并补齐成本、材质和物流资料', 'catalog'], ['选择 3–5 个主推产品并制定素材方案', 'creative'], ['导入 Meta 报表并检查购买漏斗', 'ads'], ['建立配送与退换政策知识库', 'support']
     ].map(([title,module]) => ({ id: crypto.randomUUID(), title, module, status: 'todo', owner: '店主', due: '', createdAt: new Date().toISOString() })) };

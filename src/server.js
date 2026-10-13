@@ -4,8 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { Store } from './store.js';
-import { modules, metrics, parseAds, mergeAds, makeReport, initialState } from './domain.js';
-import { syncWoo, generatePlan } from './integrations.js';
+import { modules, metrics, parseAds, mergeAds, makeReport, initialState,replyLanguages,supportChannels } from './domain.js';
+import { syncWoo, generatePlan,generateSupportReply } from './integrations.js';
 const uiDir=fileURLToPath(new URL('../ui/',import.meta.url));
 const text=(value,max=2000)=>String(value??'').trim().slice(0,max);
 function settingValues(input,previous) {
@@ -14,6 +14,7 @@ function settingValues(input,previous) {
   const url=new URL(s.site); if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||(url.port&&url.port!=='443')) throw new Error('请填写无凭证的 HTTPS 网站地址');
   if('budget' in input) { s.budget=Number(input.budget); if(!Number.isFinite(s.budget)||s.budget<0||s.budget>100000) throw new Error('预算无效'); }
   if(!s.aiModel || !/^[\w.-]+$/.test(s.aiModel)) throw new Error('模型名称无效');
+  if('uiLanguage' in input){if(!['zh-CN','en-US'].includes(input.uiLanguage))throw new Error('界面语言无效');s.uiLanguage=input.uiLanguage;}
   return s;
 }
 export function validateBackup(data) {
@@ -34,6 +35,8 @@ export function validateBackup(data) {
   base.plans=source.plans.map(p=>({id:text(p.id,100),brief:text(p.brief,6000),content:text(p.content,40000),model:text(p.model,100),productId:p.productId?text(p.productId,100):null,createdAt:text(p.createdAt,100),executed:false}));
   base.reports=source.reports.map(r=>({id:text(r.id,100),createdAt:text(r.createdAt,100),period:text(r.period,100),mode:'从备份恢复的历史复盘',findings:Array.isArray(r.findings)?r.findings.map(x=>text(x)):[],next:Array.isArray(r.next)?r.next.map(t=>({title:text(t.title),owner:text(t.owner,100),due:text(t.due,30)})):[]}));
   base.lastSync=source.lastSync?text(source.lastSync,100):null; base.orderWindow=text(source.orderWindow,200);
+  if(source.supportDrafts&&(!Array.isArray(source.supportDrafts)||source.supportDrafts.length>200))throw new Error('备份客服草稿结构无效');
+  base.supportDrafts=(source.supportDrafts||[]).map(d=>({id:text(d.id,100),createdAt:text(d.createdAt,100),channel:text(d.channel,100),language:text(d.language,30),message:text(d.message,6000),facts:text(d.facts,4000),policy:text(d.policy,4000),reply:text(d.reply,20000),summaryZh:text(d.summaryZh,10000),detectedLanguage:text(d.detectedLanguage,100),needsReview:!!d.needsReview,reviewNotes:Array.isArray(d.reviewNotes)?d.reviewNotes.map(n=>text(n)):[],sent:false,model:text(d.model,100)}));
   return base;
 }
 function taskValues(t) {
@@ -56,7 +59,7 @@ async function body(req) {
   for await (const chunk of req) { size+=chunk.length; if(size>32000000) throw new Error('请求超过 32MB'); chunks.push(chunk); }
   try { return JSON.parse(Buffer.concat(chunks).toString()); } catch { throw new Error('JSON 数据无效'); }
 }
-export async function createService({dataDir=path.resolve('.local-data'),vault,port=0,integrations={syncWoo,generatePlan}}={}) {
+export async function createService({dataDir=path.resolve('.local-data'),vault,port=0,integrations={syncWoo,generatePlan,generateSupportReply}}={}) {
   const store=await new Store(dataDir).init(); let sessionSecrets={};
   vault??={persistent:false,read:async()=>sessionSecrets,write:async x=>{sessionSecrets=x;}};
   const token=randomBytes(32).toString('hex'); let origin, syncing=false, generating=false;
@@ -71,7 +74,7 @@ export async function createService({dataDir=path.resolve('.local-data'),vault,p
         const supplied=Buffer.from(req.headers['x-luvtora-token']||''); const expected=Buffer.from(token);
         if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)) return json(403,{error:'会话验证失败，请重新打开程序'});
         if(method==='GET' && url.pathname==='/api/state') {
-          const c=await vault.read(); return json(200,{...store.state,modules,metrics:metrics(store.state),connections:{woo:!!(c.wooKey&&c.wooSecret),ai:!!c.aiKey,persistent:vault.persistent,meta:false,codex:false,google:false,tiktok:false},runtime:{mode:'本地运行，关闭程序后任务不执行',syncing,generating}});
+          const c=await vault.read(); return json(200,{...store.state,supportDrafts:store.state.supportDrafts||[],replyLanguages,supportChannels,modules,metrics:metrics(store.state),connections:{woo:!!(c.wooKey&&c.wooSecret),ai:!!c.aiKey,persistent:vault.persistent,meta:false,codex:false,google:false,tiktok:false},runtime:{mode:'本地运行，关闭程序后任务不执行',syncing,generating}});
         }
         if(method==='GET' && url.pathname==='/api/backup') return json(200,{format:'luvtora-backup-v1',exportedAt:new Date().toISOString(),state:store.state});
         if(method!=='POST') return json(404,{error:'接口不存在'});
@@ -85,7 +88,7 @@ export async function createService({dataDir=path.resolve('.local-data'),vault,p
             for(const k of ['wooKey','wooSecret','aiKey']) if(input[k]) { if(typeof input[k]!=='string'||input[k].length>1000) throw new Error('凭证格式无效'); c[k]=input[k].trim(); }
             if(input.clearWoo) { delete c.wooKey; delete c.wooSecret; }
             if(input.clearAI) delete c.aiKey;
-            await vault.write(c); await store.change('更新品牌、预算或连接设置（不记录凭证）',s=>{s.settings=settings;if(siteChanged){s.products=[];s.orders=[];s.lastSync=null;s.orderWindow='';}}); break;
+            if(siteChanged||input.clearWoo||input.clearAI||input.wooKey||input.wooSecret||input.aiKey)await vault.write(c); await store.change('更新品牌、预算或连接设置（不记录凭证）',s=>{s.settings=settings;if(siteChanged){s.products=[];s.orders=[];s.lastSync=null;s.orderWindow='';}}); break;
           }
           case '/api/woo/sync': {
             if(syncing) return json(409,{error:'同步正在进行'}); syncing=true;
@@ -103,6 +106,10 @@ export async function createService({dataDir=path.resolve('.local-data'),vault,p
             if(generating) return json(409,{error:'已有 AI 方案生成任务，请稍候'}); generating=true;
             try {const plan=await integrations.generatePlan(structuredClone(store.state),await vault.read(),input);await store.change('通过已配置 API 生成方案（未发布或执行）',s=>s.plans.unshift(plan));}finally{generating=false;}break;
           }
+          case '/api/support/generate': {
+            if(generating)return json(409,{error:'已有 AI 任务进行中，请稍候'});generating=true;
+            try{const draft=await (integrations.generateSupportReply||generateSupportReply)(structuredClone(store.state),await vault.read(),input);await store.change('生成多语言客服草稿（未连接消息渠道、未发送）',s=>{s.supportDrafts??=[];s.supportDrafts.unshift(draft);s.supportDrafts=s.supportDrafts.slice(0,200);});}finally{generating=false;}break;
+          }
           case '/api/reports/create': await store.change('手动生成规则复盘',s=>s.reports.unshift(makeReport(s)));break;
           case '/api/backup/restore': {const restored=validateBackup(input);if(syncing||generating)throw new Error('请等待当前任务完成后恢复备份');if(new URL(restored.settings.site).origin!==new URL(store.state.settings.site).origin){const c=await vault.read();delete c.wooKey;delete c.wooSecret;await vault.write(c);}await store.change('恢复本地备份（不含凭证；跨站恢复清除店铺凭证）',s=>{for(const k of Object.keys(s))delete s[k];Object.assign(s,restored);});break;}
           default:return json(404,{error:'接口不存在'});
@@ -113,7 +120,7 @@ export async function createService({dataDir=path.resolve('.local-data'),vault,p
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
       res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');
       if(url.pathname==='/'){res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(html.replace('SESSION_TOKEN',token));}
-      const files={'/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'};
+      const files={'/app.js':'text/javascript; charset=utf-8','/i18n.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'};
       if(files[url.pathname]){res.setHeader('Content-Type',files[url.pathname]);return res.end(await fs.readFile(path.join(uiDir,url.pathname.slice(1))));}
       json(404,{error:'资源不存在'});
     } catch(error) {json(400,{error:error.message});}
